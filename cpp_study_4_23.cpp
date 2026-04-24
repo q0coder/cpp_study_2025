@@ -2,42 +2,192 @@
 using namespace std;
 
 
+//void* operator new(size_t size)
+//{
+//	void* p = malloc(size);
+//	if (p == nullptr)
+//		throw bad_alloc();
+//	return p;
+//}
+//void operator delete(void* ptr)
+//{
+//	free(ptr);
+//}
+//void* operator new[](size_t size)
+//{
+//	void* p = malloc(size);
+//	if (p == nullptr)
+//		throw bad_alloc();
+//	return p;
+//}
+//void operator delete[](void* ptr)
+//{
+//	free(ptr);
+//}
 
-class Complex
+//class a
+//{
+//public:
+//	int ma;
+//protected:
+//	int mb;
+//private:
+//	int mc;
+//};
+//
+//class b :public a
+//{
+//public:
+//	int md;
+//protected:
+//	int me;
+//private:
+//	int mf;
+//};
+
+//class Father
+//{
+//public:
+//	Father(int data)
+//		:ma(data)
+//	{ }
+//	~Father()
+//	{ }
+//protected:
+//	int ma;
+//};
+//
+//class Son :public Father
+//{
+//public:
+//	Son(int data)
+//		:mb(data)
+//		,Father(data)
+//	{ }
+//	~Son()
+//	{ }
+//private:
+//	int mb;
+//};
+
+//class Father
+//{
+//public:
+//	void show()
+//	{
+//		cout << "Father::show" << endl;
+//	}
+//	void show(int)
+//	{
+//		cout << "Father::show(int)" << endl;
+//	}
+//};
+//
+//class Son :public Father
+//{
+//public:
+//	void show()
+//	{
+//		cout << "Son::show" << endl;
+//	}
+//};
+//
+//int main()
+//{
+//	Son s;
+//	
+//}
+
+
+//class Father
+//{
+//public:
+//	Father(int data)
+//		:ma(data)
+//	{ }
+//	~Father()
+//	{ }
+//protected:
+//	int ma;
+//};
+//
+//class Son :public Father
+//{
+//public:
+//	Son(int data)
+//		:mb(data)
+//		,Father(data)
+//	{ }
+//	~Son()
+//	{ }
+//private:
+//	int mb;
+//};
+//
+//int main()
+//{
+//	Father f(10);
+//	Son s(10);
+//	f = s;
+//	s = f;//错误：派生类无法转化为基类
+//}
+
+#include<typeinfo>
+ class Father
 {
 public:
-	Complex(int r=0,int i=0)
-		:mreal(r)
-		,mimage(i)
-	{ }
-	Complex operator+(const Complex& c)
+	Father(int data=10)
+		:ma(data)
+	{ 
+		cout << "Father()"<<endl;
+	}
+	virtual ~Father()
 	{
-		return Complex(c.mreal + mreal, c.mimage + mimage);
+		cout << "~Father()" << endl;
 	}
 	void show()
 	{
-		cout << "meral: " << mreal <<" " << "mimage: " << mimage << endl;
+		cout << "Father::show" << endl;
+	}
+	void show(int)
+	{
+		cout << "Father::show(int)" << endl;
 	}
 private:
-	int mreal;//实部
-	int mimage;//虚部
-
-	friend Complex operator+(const Complex& c1, const Complex& c2);
-
+	int ma;
 };
 
-Complex operator+(const Complex& c1,const Complex& c2)
+class Son :public Father
 {
-	return Complex(c1.mreal + c2.mreal, c1.mimage + c2.mimage);
-}
+public:
+	Son(int data=10,int* p= new int(10))
+		:mb(data)
+		,mptr(p)
+	{ 
+		cout << "Son()" << endl;
+	}
+	~Son()
+	{
+		cout << "~Son()" << endl;
+		delete mptr;
+		mptr = nullptr;
+	}
+	void show()
+	{
+		cout << "Son::show" << endl;
+	}
+private:
+	int mb;
+	int* mptr;
+};
 
 int main()
 {
-	Complex c1(10,10),c2(20,20);
-	Complex c3 = c1 + c2;
-	Complex c4 = c1 + 10;
-	Complex c5= 10 + c1;
-	c3.show();
-	c4.show();
-	c5.show();
+	
+	Father* ps = new Son;
+	ps->show();
+	delete ps;
+	
+	
+
 }
