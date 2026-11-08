@@ -2,7 +2,11 @@
 
 
 #include "Controler/WarriorAIController.h"
+
+#include <strmif.h>
+
 #include "WarriorDebugHelper.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "Navigation/CrowdFollowingComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
@@ -57,8 +61,10 @@ ETeamAttitude::Type AWarriorAIController::GetTeamAttitudeTowards(const AActor& O
 	const IGenericTeamAgentInterface* OtherTeamAgent=Cast<const IGenericTeamAgentInterface>(PawnToCheck->GetController());
 
 
-	//如果玩家（Other）与敌人的TeamId不同，那么判定玩家为我们敌人的敌人
-	if (OtherTeamAgent&&OtherTeamAgent->GetGenericTeamId()!=GetGenericTeamId())
+	//如果玩家ID（Other,0）与敌人的TeamId(1)，玩家Id小于敌人，那么玩家就被判定为敌人的敌人
+	//修改不使用！=的原因是因为EQS 本身不是 Actor，但是 EQS的测试Pawn类会被感知（引擎对于所有的Pawn类都会默认注册为刺激源），如果没有对其分配Id，默认的NoTeamID=255
+	//NoTeamID并不是所有的Actor都默认的TeamID，只有当某个对象参与 TeamID 判断、且它没有有效 TeamID 时，语义上视为 NoTeam。
+	if (OtherTeamAgent&&OtherTeamAgent->GetGenericTeamId()<GetGenericTeamId())
 	{
 
 		return  ETeamAttitude::Hostile;
@@ -69,8 +75,59 @@ ETeamAttitude::Type AWarriorAIController::GetTeamAttitudeTowards(const AActor& O
 	return  ETeamAttitude::Friendly;
 }
 
+void AWarriorAIController::BeginPlay()
+{
+	Super::BeginPlay();
+	if (UCrowdFollowingComponent* CrowdComponent=Cast<UCrowdFollowingComponent>(GetPathFollowingComponent()))
+	{
+		//设置避障模拟开关，决定这个 AI 是否参与群体避障计算。
+		CrowdComponent->SetCrowdSimulationState(bEnableDetourCrowdAvoidance?ECrowdSimulationState::Enabled:ECrowdSimulationState::Disabled);
+		//选择避障质量（四种，越高越消耗CPU性能）
+		switch (DetourCrowdAvoidanceQuality)
+		{
+		case 1:
+		CrowdComponent->SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::Low);break;
+
+		case 2:
+		CrowdComponent->SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::Medium);break;
+
+		case 3:
+		CrowdComponent->SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::Good);break;
+
+		case 4:
+		CrowdComponent->SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::High);break;
+
+		default:break;
+		}
+		//设置所属避障组告诉系统这个 AI 属于哪个阵营/组别，这里实际上使用的是位掩码
+		CrowdComponent->SetAvoidanceGroup(1);
+		//设置一个避开的组告诉系统这个 AI 在移动时需要避开哪些组的成员。
+		CrowdComponent->SetGroupsToAvoid(1);
+		//设置碰撞查询范围设置 AI 在避障时向周围“看”多远
+		CrowdComponent->SetCrowdCollisionQueryRange(CollisionQueryRange);
+
+
+	}
+}
+
 void AWarriorAIController::OnEnemyPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
+
+		if (UBlackboardComponent* BlackboardComponent=GetBlackboardComponent())
+		{
+			//只有在值未设置时会继续值的设置，不会在每次调用时都重新设置
+			if (!BlackboardComponent->GetValueAsObject(FName("TargetActor")))
+			{
+				//Stimulus.WasSuccessfullySensed()用于判断一次感知刺激当前是否被成功感知，返回一个 bool 值。
+				if (Stimulus.WasSuccessfullySensed()&&Actor)
+				{
+					//设置BlackBoard中对应类型的键的值，参数接收一个键名和一个值（键名必须与BlackBoard中定义的相同，值必须为定义的键的基类类型）
+					//BlackBoard的基类选项作用就是限制该 Object 键只能存储特定类型的对象
+					BlackboardComponent->SetValueAsObject(FName("TargetActor"),Actor);
+				}
+			}
+
+		}
 
 
 }
